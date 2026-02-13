@@ -1,0 +1,3 @@
+Checks: "modernize-use-designated-initializers"
+CompileFlags:
+    Add: [-xc++, -std=c++23, -Wall, -Ivendor/json/single_include]

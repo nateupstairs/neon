@@ -1,0 +1,8 @@
+UseTab: Always
+IndentWidth: 4
+TabWidth: 4
+AlwaysBreakAfterReturnType: All
+AlignAfterOpenBracket: AlwaysBreak
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
