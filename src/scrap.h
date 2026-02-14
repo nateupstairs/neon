@@ -1,22 +1,23 @@
 #pragma once
 
 #include "base.h"
-#include "scap_functions.h"
+#include "scrap_functions.h"
 
 namespace Neon {
+namespace Scrap {
 
-enum ScapType {
+enum ScrapType {
 	Command,
 	Value
 };
 
-struct ScapNode;
+struct Node;
 
-struct ScapNode {
-	ScapFunction command;
-	vector<ScapNode> params;
+struct Node {
+	ScrapFunction command;
+	vector<Node> params;
 
-	ScapType type;
+	ScrapType type;
 	json value;
 
 	json eval(json);
@@ -30,6 +31,7 @@ struct ScapNode {
 	void set(json);
 };
 
-ScapNode parse(string);
+Node parse(string);
 
+} // namespace Scrap
 } // namespace Neon

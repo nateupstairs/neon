@@ -1,19 +1,20 @@
 #pragma once
 
-#include "scap.h"
-#include "scap_functions.cpp"
+#include "scrap.h"
+#include "scrap_functions.cpp"
 
 namespace Neon {
+namespace Scrap {
 
 void
-ScapNode::set(json value) {
-	this->type = ScapType::Value;
+Node::set(json value) {
+	this->type = ScrapType::Value;
 	this->value = value;
 }
 
 bool
-ScapNode::is_null() {
-	if (this->type == ScapType::Value) {
+Node::is_null() {
+	if (this->type == ScrapType::Value) {
 		return this->value.is_null();
 	}
 
@@ -21,8 +22,8 @@ ScapNode::is_null() {
 }
 
 bool
-ScapNode::is_boolean() {
-	if (this->type == ScapType::Value) {
+Node::is_boolean() {
+	if (this->type == ScrapType::Value) {
 		return this->value.is_boolean();
 	}
 
@@ -30,8 +31,8 @@ ScapNode::is_boolean() {
 }
 
 bool
-ScapNode::is_number() {
-	if (this->type == ScapType::Value) {
+Node::is_number() {
+	if (this->type == ScrapType::Value) {
 		return this->value.is_number();
 	}
 
@@ -39,8 +40,8 @@ ScapNode::is_number() {
 }
 
 bool
-ScapNode::is_string() {
-	if (this->type == ScapType::Value) {
+Node::is_string() {
+	if (this->type == ScrapType::Value) {
 		return this->value.is_string();
 	}
 
@@ -48,8 +49,8 @@ ScapNode::is_string() {
 }
 
 bool
-ScapNode::is_command() {
-	if (this->type == ScapType::Command) {
+Node::is_command() {
+	if (this->type == ScrapType::Command) {
 		return true;
 	}
 
@@ -57,8 +58,8 @@ ScapNode::is_command() {
 }
 
 bool
-ScapNode::is_value() {
-	if (this->type != ScapType::Command) {
+Node::is_value() {
+	if (this->type != ScrapType::Command) {
 		return true;
 	}
 
@@ -66,7 +67,7 @@ ScapNode::is_value() {
 }
 
 json
-ScapNode::eval(json scope) {
+Node::eval(json scope) {
 	if (this->is_command()) {
 		if (this->command != nullptr) {
 			json evaluated = this->command(this->params, scope);
@@ -79,16 +80,16 @@ ScapNode::eval(json scope) {
 	}
 }
 
-ScapNode
+Node
 parse_nodes(json blob) {
-	ScapNode node = (ScapNode){};
+	Node node = (Node){};
 
 	if (blob.is_array()) {
-		node.type = ScapType::Command;
+		node.type = ScrapType::Command;
 
 		json cmd_data = blob.at(0);
 		string f_name = cmd_data.get<string>();
-		ScapFunction exists = get_scap_function(f_name);
+		ScrapFunction exists = get_scrap_function(f_name);
 		if (exists != nullptr) {
 			node.command = exists;
 		}
@@ -100,7 +101,7 @@ parse_nodes(json blob) {
 				node.params.push_back(parse_nodes(child_data));
 			}
 		} else {
-			node.type = ScapType::Value;
+			node.type = ScrapType::Value;
 			node.value = nullptr;
 		}
 	} else {
@@ -110,7 +111,7 @@ parse_nodes(json blob) {
 	return node;
 }
 
-ScapNode
+Node
 parse(string s) {
 	json blob = json::parse(s);
 
@@ -118,8 +119,9 @@ parse(string s) {
 		return parse_nodes(blob);
 	}
 
-	ScapNode x = (ScapNode){};
+	Node x = (Node){};
 	return x;
 }
 
+} // namespace Scrap
 } // namespace Neon

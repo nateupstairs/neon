@@ -3,12 +3,14 @@
 using namespace emscripten;
 
 #include "base.h"
-#include "scap.cpp"
+#include "scrap.cpp"
 
-namespace Neon {
+using namespace Neon::Scrap;
+using json = nlohmann::json;
+using std::string;
 
 string evaluate(string syntax, string scope) {
-	ScapNode s = parse(syntax);
+	Node s = parse(syntax);
 	json scoped = json::parse(scope);
 
 	json result = s.eval(scoped);
@@ -20,5 +22,3 @@ string evaluate(string syntax, string scope) {
 EMSCRIPTEN_BINDINGS(my_module) {
     function("evaluate", &evaluate);
 }
-
-} // namespace Neon

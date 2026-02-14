@@ -1,14 +1,14 @@
 #include "base.h"
 #include "easing.h"
-#include "scap.h"
 
 #include "animation.cpp"
 #include "context.cpp"
 #include "uvalue.cpp"
 #include "easing.cpp"
-#include "scap.cpp"
+#include "scrap.cpp"
 
 using namespace Neon;
+using namespace Neon::Scrap;
 
 int
 main() {
@@ -106,7 +106,7 @@ main() {
 			"test": "yes"
 		}
 	)");
-	ScapNode n = parse(R"(
+	Node n = parse(R"(
 		["*",
 			["+",
 				1,
@@ -117,17 +117,33 @@ main() {
 	)");
 	json result = n.eval(scope);
 
-	ScapNode n2 = parse(R"(
-		["var", "test"]
-	)");
-	json result2 = n2.eval(scope);
-
 	if (result.is_number()) {
 		printf("eval: %f\n", result.get<f64>());
 	}
 
+	Node n2 = parse(R"(
+		["var", "test"]
+	)");
+	json result2 = n2.eval(scope);
+
 	if (result2.is_string()) {
 		printf("eval: %s\n", result2.get<string>().c_str());
+	}
+
+	Node n3 = parse(R"(
+		["if",
+			["=",
+				"yes",
+				"no"
+			],
+			"true path",
+			"false path"
+		]
+	)");
+	json result3 = n3.eval(scope);
+
+	if (result3.is_string()) {
+		printf("eval: %s\n", result3.get<string>().c_str());
 	}
 
 	return 0;
