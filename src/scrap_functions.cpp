@@ -1,6 +1,7 @@
 #pragma once
 
 #include "scrap.h"
+#include <cmath>
 #include "scrap_functions.h"
 
 namespace Neon {
@@ -8,7 +9,11 @@ namespace Scrap {
 
 json
 S_var(const vector<Node>& params, const json& scope) {
-	json result;
+	json result = json();
+
+	if (params.empty()) {
+		return result;
+	}
 
 	Node v = params[0];
 	if (
@@ -19,7 +24,33 @@ S_var(const vector<Node>& params, const json& scope) {
 		string key = v.value.get<string>();
 		bool exists = scope.contains(key);
 		if (exists) {
-			return scope.at(key);
+			result = scope.at(key);
+		} else {
+			return json();
+		}
+	}
+
+	for (i32 i = 1; i < params.size(); i++) {
+		Node param = params[i];
+
+		if (param.is_string() && result.is_object()) {
+			string key = param.value.get<string>();
+
+			if (result.contains(key)) {
+				result = result.at(key);
+			} else {
+				return json();
+			}
+		} else if (param.is_number() && result.is_array()) {
+			i32 index = param.value.get<i32>();
+
+			if (index < result.size()) {
+				result = result.at(index);
+			} else {
+				return json();
+			}
+		} else {
+			return json();
 		}
 	}
 
@@ -122,6 +153,98 @@ S_equal(const vector<Node>& params, const json& scope) {
 }
 
 json
+S_gt(const vector<Node>& params, const json& scope) {
+	if (params.size() < 2) {
+		return false;
+	}
+
+	Node left_node = params[0];
+	json left = left_node.eval(scope);
+
+	Node right_node = params[1];
+	json right = right_node.eval(scope);
+
+	if (!left.is_number() || !right.is_number()) {
+		return false;
+	}
+
+	if (left.get<f64>() > right.get<f64>()) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+json
+S_lt(const vector<Node>& params, const json& scope) {
+	if (params.size() < 2) {
+		return false;
+	}
+
+	Node left_node = params[0];
+	json left = left_node.eval(scope);
+
+	Node right_node = params[1];
+	json right = right_node.eval(scope);
+
+	if (!left.is_number() || !right.is_number()) {
+		return false;
+	}
+
+	if (left.get<f64>() < right.get<f64>()) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+json
+S_gte(const vector<Node>& params, const json& scope) {
+	if (params.size() < 2) {
+		return false;
+	}
+
+	Node left_node = params[0];
+	json left = left_node.eval(scope);
+
+	Node right_node = params[1];
+	json right = right_node.eval(scope);
+
+	if (!left.is_number() || !right.is_number()) {
+		return false;
+	}
+
+	if (left.get<f64>() >= right.get<f64>()) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+json
+S_lte(const vector<Node>& params, const json& scope) {
+	if (params.size() < 2) {
+		return false;
+	}
+
+	Node left_node = params[0];
+	json left = left_node.eval(scope);
+
+	Node right_node = params[1];
+	json right = right_node.eval(scope);
+
+	if (!left.is_number() || !right.is_number()) {
+		return false;
+	}
+
+	if (left.get<f64>() <= right.get<f64>()) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+json
 S_add(const vector<Node>& params, const json& scope) {
 	json result = 0;
 
@@ -193,14 +316,75 @@ S_div(const vector<Node>& params, const json& scope) {
 	return result;
 }
 
+json
+S_round(const vector<Node>& params, const json& scope) {
+	json result = 0;
+
+	if (params.size() < 1) {
+		return result;
+	}
+
+	Node v = params[0];
+	json evaluated = v.eval(scope);
+
+	if (evaluated.is_number()) {
+		result = std::round(evaluated.get<f64>());
+	}
+
+	return result;
+}
+
+json
+S_ceil(const vector<Node>& params, const json& scope) {
+	json result = 0;
+
+	if (params.size() < 1) {
+		return result;
+	}
+
+	Node v = params[0];
+	json evaluated = v.eval(scope);
+
+	if (evaluated.is_number()) {
+		result = std::ceil(evaluated.get<f64>());
+	}
+
+	return result;
+}
+
+json
+S_floor(const vector<Node>& params, const json& scope) {
+	json result = 0;
+
+	if (params.size() < 1) {
+		return result;
+	}
+
+	Node v = params[0];
+	json evaluated = v.eval(scope);
+
+	if (evaluated.is_number()) {
+		result = std::floor(evaluated.get<f64>());
+	}
+
+	return result;
+}
+
 std::unordered_map<string, ScrapFunction> operations = {
 	{"var", &S_var},
 	{"if", &S_if},
 	{"=", &S_equal},
+	{">", &S_gt},
+	{"<", &S_lt},
+	{">=", &S_gte},
+	{"<=", &S_lte},
 	{"+", &S_add},
 	{"-", &S_sub},
 	{"*", &S_mult},
 	{"/", &S_div},
+	{"round", &S_round},
+	{"ceil", &S_ceil},
+	{"floor", &S_floor},
 };
 
 ScrapFunction get_scrap_function(const string& key) {

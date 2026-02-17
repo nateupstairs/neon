@@ -103,7 +103,12 @@ main() {
 
 	json scope = json::parse(R"(
 		{
-			"test": "yes"
+			"test": "yes",
+			"deep": {
+				"var": {
+					"test": false
+				}
+			}
 		}
 	)");
 	Node n = parse(R"(
@@ -144,6 +149,31 @@ main() {
 
 	if (result3.is_string()) {
 		printf("eval: %s\n", result3.get<string>().c_str());
+	}
+
+	Node n4 = parse(R"(
+		["var",
+			"deep",
+			"var",
+			"test"
+		]
+	)");
+	json result4 = n4.eval(scope);
+
+	if (result4.is_boolean()) {
+		printf("eval: %d\n", result4.get<bool>());
+	}
+
+	Node n5 = parse(R"(
+		[">=",
+			10,
+			["floor", 10.00001]
+		]
+	)");
+	json result5 = n5.eval(scope);
+
+	if (result5.is_boolean()) {
+		printf("eval: %d\n", result5.get<bool>());
 	}
 
 	return 0;
