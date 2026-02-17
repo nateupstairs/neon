@@ -101,7 +101,7 @@ main() {
 	printf("%f\n", v4);
 	printf("%f\n", v5);
 
-	json scope = json::parse(R"(
+	json scope_json = json::parse(R"(
 		{
 			"test": "yes",
 			"deep": {
@@ -120,7 +120,8 @@ main() {
 			1.5
 		]
 	)");
-	json result = n.eval(scope);
+	Scope scope = Scope(scope_json);
+	json result = n.eval(&scope);
 
 	if (result.is_number()) {
 		printf("eval: %f\n", result.get<f64>());
@@ -129,7 +130,7 @@ main() {
 	Node n2 = parse(R"(
 		["var", "test"]
 	)");
-	json result2 = n2.eval(scope);
+	json result2 = n2.eval(&scope);
 
 	if (result2.is_string()) {
 		printf("eval: %s\n", result2.get<string>().c_str());
@@ -145,7 +146,7 @@ main() {
 			"false path"
 		]
 	)");
-	json result3 = n3.eval(scope);
+	json result3 = n3.eval(&scope);
 
 	if (result3.is_string()) {
 		printf("eval: %s\n", result3.get<string>().c_str());
@@ -158,7 +159,7 @@ main() {
 			"test"
 		]
 	)");
-	json result4 = n4.eval(scope);
+	json result4 = n4.eval(&scope);
 
 	if (result4.is_boolean()) {
 		printf("eval: %d\n", result4.get<bool>());
@@ -170,11 +171,89 @@ main() {
 			["floor", 10.00001]
 		]
 	)");
-	json result5 = n5.eval(scope);
+	json result5 = n5.eval(&scope);
 
 	if (result5.is_boolean()) {
 		printf("eval: %d\n", result5.get<bool>());
 	}
+
+	json component_scope_json = json::parse(R"({
+		"component": ["ds-webflow-sidepanel", {
+	        "start": 54300,
+	        "duration": 5000,
+	        "build": 56300,
+	        "z-index": 2,
+	        "handle": "8c5608ab-cf91-43db-9251-74bf1f5dcda6",
+			"media": {
+			    "file": "cloud://uploads/57c6a125131e4776b8fe2179ace98e58.mp4",
+			    "duration": 50300,
+			    "originalDuration": 50300,
+			    "slip": 0,
+			    "justify": "fill",
+			    "meta": {
+			        "hasAudio": true,
+			        "fileType": "video/mp4",
+			        "assetType": "video"
+			    }
+			},
+	        "meta": {
+	            "display": "List with Media",
+	            "isClipComponent": true,
+	            "lastUpdated": 1770848134575,
+	            "tag": {
+	                "id": "64d3f08a40686237d0944c66",
+	                "name": "List",
+	                "createdAt": "2023-08-09T20:01:14.274Z",
+	                "updatedAt": "2023-08-09T20:01:14.274Z"
+	            },
+	            "transcriptNodeKeys": [
+	                "698cff7039a8de700895cbd6-space-0"
+	            ]
+	        },
+	        "swap-sides": true,
+	        "transcript": []
+		}]
+	})");
+
+	Scope component_scope = Scope(component_scope_json);
+
+	Node n6 = parse(R"(
+		["let",
+			[
+				["media-dur",
+					["get",
+						"component",
+						1,
+						"media",
+						"originalDuration"
+					]
+				]
+			],
+			["if",
+				["=",
+					["type", ["get", "media-dur"]],
+					"number"
+				],
+				["floor", ["get", "media-dur"]],
+				null
+			]
+		]
+	)");
+	json result6 = n6.eval(&component_scope);
+
+	printf("media-dur: %s\n", result6.dump().c_str());
+
+	Node n7 = parse(R"(
+		["let",
+			[
+				["one", 1],
+				["two", 2]
+			],
+			["+", ["var", "one"], ["var", "two"]]
+		]
+	)");
+	json result7 = n7.eval(&component_scope);
+	printf("debuging: %s\n", result7.dump().c_str());
 
 	return 0;
 }

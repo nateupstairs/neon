@@ -6,6 +6,47 @@
 namespace Neon {
 namespace Scrap {
 
+Scope::Scope(json frame) {
+	this->stack.push_back(frame);
+}
+
+bool
+Scope::exists(string x) {
+	json last = this->stack.back();
+	bool exists = last.contains(x);
+	return exists;
+}
+
+json
+Scope::get(string x) {
+	json last = this->stack.back();
+	bool exists = last.contains(x);
+	if (exists) {
+		return last.at(x);
+	}
+	return json();
+}
+
+void
+Scope::set(string key, json value) {
+	i32 last = this->stack.size() - 1;
+	this->stack[last][key] = value;
+	return;
+}
+
+void
+Scope::push_frame() {
+	json new_frame = this->stack.back();
+	this->stack.push_back(new_frame);
+	return;
+}
+
+void
+Scope::pop_frame() {
+	this->stack.pop_back();
+	return;
+}
+
 void
 Node::set(json value) {
 	this->type = ScrapType::Value;
@@ -67,7 +108,7 @@ Node::is_value() {
 }
 
 json
-Node::eval(json scope) {
+Node::eval(Scope* scope) {
 	if (this->is_command()) {
 		if (this->command != nullptr) {
 			json evaluated = this->command(this->params, scope);
@@ -94,7 +135,33 @@ parse_nodes(json blob) {
 			node.command = exists;
 		}
 
-		if (node.command != nullptr) {
+		// special cases
+		if (f_name == "let") {
+			i32 children = blob.size();
+			if (children == 3) {
+				// let block
+				if (blob[1].is_array()) {
+					json let_cmd = json::parse("[\"array\"]");
+					i32 let_items = blob[1].size();
+					for (i32 i = 0; i < let_items; i++) {
+						json set_cmd = json::parse("[\"set\"]");
+						i32 set_items = blob[1][i].size();
+						for (i32 n = 0; n < set_items; n++) {
+							set_cmd.push_back(blob[1][i][n]);
+						}
+						let_cmd.push_back(set_cmd);
+					}
+					node.params.push_back(parse_nodes(let_cmd));
+				} else {
+					node.params.push_back(parse_nodes(json()));
+				}
+
+				// do block
+				json child_data = blob.at(2);
+				node.params.push_back(parse_nodes(child_data));
+			}
+		// regular case
+		} else if (node.command != nullptr) {
 			i32 children = blob.size();
 			for (i32 i = 1; i < children; i++) {
 				json child_data = blob.at(i);

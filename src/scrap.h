@@ -11,8 +11,18 @@ enum ScrapType {
 	Value
 };
 
-struct Node;
+struct Scope {
+	Scope(json);
 
+	vector<json> stack;
+	bool exists(string);
+	json get(string);
+	void set(string, json);
+	void push_frame();
+	void pop_frame();
+};
+
+struct Node;
 struct Node {
 	ScrapFunction command;
 	vector<Node> params;
@@ -20,7 +30,7 @@ struct Node {
 	ScrapType type;
 	json value;
 
-	json eval(json);
+	json eval(Scope*);
 	bool is_command();
 	bool is_value();
 	bool is_null();

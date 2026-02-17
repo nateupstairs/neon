@@ -6,7 +6,8 @@ namespace Neon {
 namespace Scrap {
 
 struct Node;
-using ScrapFunction = json (*)(const vector<Node>&, const json&);
+struct Scope;
+using ScrapFunction = json (*)(const vector<Node>&, Scope*);
 
 ScrapFunction get_scap_function(const string&);
 
