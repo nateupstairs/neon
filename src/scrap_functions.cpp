@@ -15,9 +15,7 @@ S_get(const vector<Node>& params, Scope* scope) {
 	}
 
 	Node v = params[0];
-	if (
-		v.is_string()
-	) {
+	if (v.is_string()) {
 		string key = v.value.get<string>();
 		bool exists = scope->exists(key);
 		if (exists) {
@@ -25,6 +23,8 @@ S_get(const vector<Node>& params, Scope* scope) {
 		} else {
 			return json();
 		}
+	} else if (v.is_command()) {
+		result = v.eval(scope);
 	}
 
 	for (i32 i = 1; i < params.size(); i++) {
@@ -469,6 +469,190 @@ S_type(const vector<Node>& params, Scope* scope) {
 	}
 }
 
+json
+S_default(const vector<Node>& params, Scope* scope) {
+	if (params.empty()) {
+		return json();
+	}
+
+	Node value_node = params[0];
+	json value = value_node.eval(scope);
+
+	if (value.is_null()) {
+		if (params.size() >= 2) {
+			Node default_node = params[1];
+			return default_node.eval(scope);
+		}
+	}
+
+	return value;
+}
+
+json
+S_to_string(const vector<Node>& params, Scope* scope) {
+	if (params.empty()) {
+		return json();
+	}
+
+	Node value_node = params[0];
+	json value = value_node.eval(scope);
+
+	if (value.is_number()) {
+		// Convert number to string
+		if (value.is_number_integer()) {
+			return std::to_string(value.get<i64>());
+		} else if (value.is_number_unsigned()) {
+			return std::to_string(value.get<u64>());
+		} else if (value.is_number_float()) {
+			// Remove trailing zeros for float representation
+			string str = std::to_string(value.get<f64>());
+			str.erase(str.find_last_not_of('0') + 1, std::string::npos);
+			if (str.back() == '.') {
+				str.pop_back();
+			}
+			return str;
+		}
+	} else if (value.is_boolean()) {
+		return value.get<bool>() ? "true" : "false";
+	} else if (value.is_string()) {
+		return value;
+	} else if (value.is_null()) {
+		return json();
+	}
+
+	return json();
+}
+
+json
+S_to_number(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 1) {
+		return json();
+	}
+
+	Node value_node = params[0];
+	json value = value_node.eval(scope);
+
+	if (value.is_string()) {
+		string str = value.get<string>();
+		try {
+			// Try to parse as a floating point number
+			f64 number = std::stod(str);
+			return number;
+		} catch (const std::exception& e) {
+			// If parsing fails, return null
+			return json();
+		}
+	} else if (value.is_number()) {
+		// Already a number, return as is
+		return value;
+	} else if (value.is_boolean()) {
+		// Convert boolean to number (true = 1, false = 0)
+		return value.get<bool>() ? 1.0 : 0.0;
+	}
+
+	return json();
+}
+
+json
+S_min(const vector<Node>& params, Scope* scope) {
+	if (params.empty()) {
+		return json();
+	}
+
+	f64 min_value = 0;
+	bool found_number = false;
+
+	// for (Node param : params) {
+	for (const Node& param : params) {
+		json evaluated = param.eval(scope);
+		if (evaluated.is_number()) {
+			f64 value = evaluated.get<f64>();
+			if (
+				!found_number
+				||
+				min_value > value
+			) {
+				min_value = value;
+			}
+			found_number = true;
+		}
+	}
+
+	if (!found_number) {
+		return json();
+	}
+
+	return min_value;
+}
+
+json
+S_max(const vector<Node>& params, Scope* scope) {
+	if (params.empty()) {
+		return json();
+	}
+
+	f64 max_value = 0;
+	bool found_number = false;
+
+	for (Node param : params) {
+		json evaluated = param.eval(scope);
+		if (evaluated.is_number()) {
+			f64 value = evaluated.get<f64>();
+
+			if (
+				!found_number
+				||
+				max_value < value
+			) {
+				max_value = value;
+			}
+			found_number = true;
+
+		}
+	}
+
+	if (!found_number) {
+		return json();
+	}
+
+	return max_value;
+}
+
+json
+S_nth(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 2) {
+		return json();
+	}
+
+	Node haystack = params[0];
+	json evaluated = haystack.eval(scope);
+
+	if (!evaluated.is_array()) {
+		return json();
+	}
+
+	Node needle = params[1];
+	json needle_eval = needle.eval(scope);
+
+	if (!needle_eval.is_number_integer()) {
+		return json();
+	}
+
+	return evaluated.at(needle_eval.get<i32>());
+}
+
+json
+S_print(const vector<Node>& params, Scope* scope) {
+	if (params.empty()) {
+		return json();
+	}
+
+	Node haystack = params[0];
+	json evaluated = haystack.eval(scope);
+
+	return evaluated;
+}
+
 std::unordered_map<string, ScrapFunction> operations = {
 	{"get", &S_get},
 	{"set", &S_set},
@@ -490,6 +674,13 @@ std::unordered_map<string, ScrapFunction> operations = {
 	{"ceil", &S_ceil},
 	{"floor", &S_floor},
 	{"type", &S_type},
+	{"default", &S_default},
+	{"to-string", &S_to_string},
+	{"to-number", &S_to_number},
+	{"min", &S_min},
+	{"max", &S_max},
+	{"nth", &S_nth},
+	{"print", &S_print},
 };
 
 ScrapFunction get_scrap_function(const string& key) {

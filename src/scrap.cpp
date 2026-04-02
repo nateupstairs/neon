@@ -54,7 +54,7 @@ Node::set(json value) {
 }
 
 bool
-Node::is_null() {
+Node::is_null() const {
 	if (this->type == ScrapType::Value) {
 		return this->value.is_null();
 	}
@@ -63,7 +63,7 @@ Node::is_null() {
 }
 
 bool
-Node::is_boolean() {
+Node::is_boolean() const {
 	if (this->type == ScrapType::Value) {
 		return this->value.is_boolean();
 	}
@@ -72,7 +72,7 @@ Node::is_boolean() {
 }
 
 bool
-Node::is_number() {
+Node::is_number() const {
 	if (this->type == ScrapType::Value) {
 		return this->value.is_number();
 	}
@@ -81,7 +81,7 @@ Node::is_number() {
 }
 
 bool
-Node::is_string() {
+Node::is_string() const {
 	if (this->type == ScrapType::Value) {
 		return this->value.is_string();
 	}
@@ -90,7 +90,7 @@ Node::is_string() {
 }
 
 bool
-Node::is_command() {
+Node::is_command() const {
 	if (this->type == ScrapType::Command) {
 		return true;
 	}
@@ -99,7 +99,7 @@ Node::is_command() {
 }
 
 bool
-Node::is_value() {
+Node::is_value() const {
 	if (this->type != ScrapType::Command) {
 		return true;
 	}
@@ -108,7 +108,7 @@ Node::is_value() {
 }
 
 json
-Node::eval(Scope* scope) {
+Node::eval(Scope* scope) const {
 	if (this->is_command()) {
 		if (this->command != nullptr) {
 			json evaluated = this->command(this->params, scope);

@@ -196,6 +196,8 @@ main() {
 			        "assetType": "video"
 			    }
 			},
+			"do-pip": false,
+			"camera-layout": "split",
 	        "meta": {
 	            "display": "List with Media",
 	            "isClipComponent": true,
@@ -246,10 +248,26 @@ main() {
 	Node n7 = parse(R"(
 		["let",
 			[
-				["one", 1],
-				["two", 2]
+				["params", ["nth", ["var", "component"], 1]],
+				["do-pip", ["get", ["var", "params"], "do-pip"]],
+				["layout", ["get", ["var", "params"], "camera-layout"]]
 			],
-			["+", ["var", "one"], ["var", "two"]]
+			["if",
+				["var", "do-pip"],
+				["if",
+					["=", ["var", "layout"], "not-split"],
+					["array",
+						"camera-shape"
+					],
+					null
+				],
+				["array",
+					"camera-layout",
+					"camera-shape",
+					"camera-size",
+					"camera-position"
+				]
+			]
 		]
 	)");
 	json result7 = n7.eval(&component_scope);

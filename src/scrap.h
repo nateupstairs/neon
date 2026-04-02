@@ -30,13 +30,13 @@ struct Node {
 	ScrapType type;
 	json value;
 
-	json eval(Scope*);
-	bool is_command();
-	bool is_value();
-	bool is_null();
-	bool is_boolean();
-	bool is_number();
-	bool is_string();
+	json eval(Scope*) const;
+	bool is_command() const;
+	bool is_value() const;
+	bool is_null() const;
+	bool is_boolean() const;
+	bool is_number() const;
+	bool is_string() const;
 
 	void set(json);
 };
