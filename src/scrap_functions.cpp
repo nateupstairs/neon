@@ -104,7 +104,6 @@ S_let(const vector<Node>& params, Scope* scope) {
 	}
 
 	scope->push_frame();
-	scope->set("test-dude", "true");
 
 	// run all but last item
 	// these are all just setting scope
