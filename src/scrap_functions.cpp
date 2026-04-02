@@ -637,8 +637,13 @@ S_nth(const vector<Node>& params, Scope* scope) {
 	if (!needle_eval.is_number_integer()) {
 		return json();
 	}
+	i32 index = needle_eval.get<i32>();
 
-	return evaluated.at(needle_eval.get<i32>());
+	if (evaluated.size() > index) {
+		return evaluated.at(index);
+	}
+
+	return json();
 }
 
 json

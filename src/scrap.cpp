@@ -187,6 +187,7 @@ parse(string s) {
 	}
 
 	Node x = (Node){};
+	x.set(blob);
 	return x;
 }
 
