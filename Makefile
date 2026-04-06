@@ -10,6 +10,9 @@ wasm:
 wasm_standalone:
 	em++ -std=c++23 -DNEON_STANDALONE src/wasm.cpp -Ivendor/json/single_include -o ./build/neon.wasm -O2 -s STANDALONE_WASM -s EXPORT_KEEPALIVE=1 --no-entry
 
+wasm_standalone_debug:
+	em++ -std=c++23 -DNEON_STANDALONE src/wasm.cpp -Ivendor/json/single_include -o ./build/neon.wasm -O0 -g -s STANDALONE_WASM -s EXPORT_KEEPALIVE=1 --no-entry
+
 test:
 	clang++ -std=c++23 src/test_scrap.cpp -Ivendor/json/single_include -o ./build/test_scrap -O2 && ./build/test_scrap
 
