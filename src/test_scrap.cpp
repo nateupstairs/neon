@@ -95,6 +95,16 @@ main() {
 		{"sub: single arg",       R"(["-", 5])",               5,       nullptr},
 		{"add: no args",          R"(["+"])",                  0,       nullptr},
 		{"add: skip non-number",  R"(["+", 1, "a", 2])",      3.0,     nullptr},
+		{"mod: basic",            R"(["mod", 10, 3])",         1.0,     nullptr},
+		{"mod: float",            R"(["mod", 10.5, 3])",       json(std::fmod(10.5, 3.0)), nullptr},
+		{"mod: divide by zero",   R"(["mod", 10, 0])",         nullptr, nullptr},
+		{"mod: non-number",       R"(["mod", "a", 3])",        nullptr, nullptr},
+		{"mod: no args",          R"(["mod"])",                nullptr, nullptr},
+		{"abs: positive",         R"(["abs", 5])",             5.0,     nullptr},
+		{"abs: negative",         R"(["abs", -5])",            5.0,     nullptr},
+		{"abs: zero",             R"(["abs", 0])",             0.0,     nullptr},
+		{"abs: non-number",       R"(["abs", "hi"])",          nullptr, nullptr},
+		{"abs: no args",          R"(["abs"])",                nullptr, nullptr},
 	};
 	for (const auto& t : arith_tests) run_test(t);
 
@@ -142,6 +152,32 @@ main() {
 	};
 	for (const auto& t : cmp_tests) run_test(t);
 
+	// ── Logic: and / or / not ───────────────────────────────────
+	printf("\n── Logic ──\n");
+	vector<Test> logic_tests = {
+		{"and: all true",           R"(["and", true, true])",          true,  nullptr},
+		{"and: one false",          R"(["and", true, false])",         false, nullptr},
+		{"and: all false",          R"(["and", false, false])",        false, nullptr},
+		{"and: with null",          R"(["and", true, null])",          false, nullptr},
+		{"and: no args",            R"(["and"])",                      true,  nullptr},
+		{"and: single true",        R"(["and", true])",                true,  nullptr},
+		{"and: three args",         R"(["and", true, true, true])",    true,  nullptr},
+		{"and: truthy non-bool",    R"(["and", 1, "hi"])",             true,  nullptr},
+		{"or: all true",            R"(["or", true, true])",           true,  nullptr},
+		{"or: one true",            R"(["or", false, true])",          true,  nullptr},
+		{"or: all false",           R"(["or", false, false])",         false, nullptr},
+		{"or: with null",           R"(["or", null, false])",          false, nullptr},
+		{"or: no args",             R"(["or"])",                       false, nullptr},
+		{"or: truthy non-bool",     R"(["or", false, 1])",             true,  nullptr},
+		{"or: truthy string",       R"(["or", false, "hi"])",          true,  nullptr},
+		{"not: true",               R"(["not", true])",                false, nullptr},
+		{"not: false",              R"(["not", false])",               true,  nullptr},
+		{"not: null",               R"(["not", null])",                true,  nullptr},
+		{"not: truthy non-bool",    R"(["not", 1])",                   false, nullptr},
+		{"not: no args",            R"(["not"])",                      true,  nullptr},
+	};
+	for (const auto& t : logic_tests) run_test(t);
+
 	// ── Conditionals ────────────────────────────────────────────
 	printf("\n── Conditionals ──\n");
 	vector<Test> if_tests = {
@@ -169,6 +205,29 @@ main() {
 		{"get: command first arg", R"(["get", ["var", "nested"], "a", "b"])", 99, basic_scope},
 	};
 	for (const auto& t : scope_tests) run_test(t);
+
+	// ── Set ─────────────────────────────────────────────────────
+	printf("\n── Set ──\n");
+	{
+		json scope_data = json::parse(R"({})");
+		Scope scope = Scope(scope_data);
+
+		Node set_node = parse(R"(["set", "x", 42])");
+		set_node.eval(&scope);
+
+		Node get_node = parse(R"(["var", "x"])");
+		json result = get_node.eval(&scope);
+
+		bool ok = (result == json(42));
+		if (ok) {
+			passed++;
+			printf("  PASS  set: basic set and retrieve\n");
+		} else {
+			failed++;
+			printf("  FAIL  set: basic set and retrieve\n");
+			printf("        expected: 42, got: %s\n", result.dump().c_str());
+		}
+	}
 
 	// ── Let ─────────────────────────────────────────────────────
 	printf("\n── Let ──\n");
@@ -232,12 +291,137 @@ main() {
 		{"array: basic",         R"(["array", 1, 2, 3])",                   json::parse("[1,2,3]"),       nullptr},
 		{"array: empty",         R"(["array"])",                             json::parse("[]"),            nullptr},
 		{"array: mixed types",   R"(["array", 1, "two", true, null])",      json::parse(R"([1,"two",true,null])"), nullptr},
+		{"list: alias",          R"(["list", 1, 2, 3])",                    json::parse("[1,2,3]"),       nullptr},
 		{"nth: index 0",         R"(["nth", ["array", "a", "b", "c"], 0])", "a",     nullptr},
 		{"nth: index 1",         R"(["nth", ["array", "a", "b", "c"], 1])", "b",     nullptr},
 		{"nth: non-array",       R"(["nth", 5, 0])",                         nullptr, nullptr},
 		{"nth: no args",         R"(["nth"])",                               nullptr, nullptr},
+		{"length: array",        R"(["length", ["array", 1, 2, 3]])",       3,       nullptr},
+		{"length: empty array",  R"(["length", ["array"]])",                0,       nullptr},
+		{"length: string",       R"(["length", "hello"])",                  5,       nullptr},
+		{"length: empty string", R"(["length", ""])",                       0,       nullptr},
+		{"length: non-coll",     R"(["length", 42])",                       nullptr, nullptr},
+		{"length: no args",      R"(["length"])",                           nullptr, nullptr},
+		{"append: two arrays",   R"(["append", ["array", 1, 2], ["array", 3, 4]])", json::parse("[1,2,3,4]"), nullptr},
+		{"append: three arrays", R"(["append", ["array", 1], ["array", 2], ["array", 3]])", json::parse("[1,2,3]"), nullptr},
+		{"append: empty arrays", R"(["append", ["array"], ["array"]])",     json::parse("[]"),            nullptr},
+		{"append: skip non-arr", R"(["append", ["array", 1], 5, ["array", 2]])", json::parse("[1,2]"), nullptr},
+		{"reverse: array",       R"(["reverse", ["array", 1, 2, 3]])",     json::parse("[3,2,1]"),       nullptr},
+		{"reverse: string",      R"(["reverse", "abc"])",                   "cba",   nullptr},
+		{"reverse: empty array", R"(["reverse", ["array"]])",               json::parse("[]"),            nullptr},
+		{"reverse: non-coll",    R"(["reverse", 42])",                      nullptr, nullptr},
+		{"reverse: no args",     R"(["reverse"])",                          nullptr, nullptr},
+		{"last: basic",          R"(["last", ["array", 1, 2, 3]])",        3,       nullptr},
+		{"last: single elem",    R"(["last", ["array", 99]])",             99,      nullptr},
+		{"last: empty array",    R"(["last", ["array"]])",                 nullptr, nullptr},
+		{"last: non-array",      R"(["last", 42])",                        nullptr, nullptr},
+		{"last: no args",        R"(["last"])",                            nullptr, nullptr},
+		{"compact: removes nulls", R"(["compact", ["array", 1, null, 2, null, 3]])", json::parse("[1,2,3]"), nullptr},
+		{"compact: no nulls",    R"(["compact", ["array", 1, 2, 3]])",    json::parse("[1,2,3]"), nullptr},
+		{"compact: all nulls",   R"(["compact", ["array", null, null]])",  json::parse("[]"),     nullptr},
+		{"compact: empty array", R"(["compact", ["array"]])",              json::parse("[]"),     nullptr},
+		{"compact: non-array",   R"(["compact", 42])",                     nullptr, nullptr},
+		{"compact: no args",     R"(["compact"])",                         nullptr, nullptr},
 	};
 	for (const auto& t : arr_tests) run_test(t);
+
+	// ── Positional Access: first–tenth ──────────────────────────
+	printf("\n── Positional Access ──\n");
+	vector<Test> pos_tests = {
+		{"first: basic",    R"(["first", ["array", "a", "b", "c"]])",   "a",     nullptr},
+		{"second: basic",   R"(["second", ["array", "a", "b", "c"]])",  "b",     nullptr},
+		{"third: basic",    R"(["third", ["array", "a", "b", "c"]])",   "c",     nullptr},
+		{"fourth: basic",   R"(["fourth", ["array", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])", 4, nullptr},
+		{"fifth: basic",    R"(["fifth", ["array", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])",  5, nullptr},
+		{"sixth: basic",    R"(["sixth", ["array", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])",  6, nullptr},
+		{"seventh: basic",  R"(["seventh", ["array", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])", 7, nullptr},
+		{"eighth: basic",   R"(["eighth", ["array", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])", 8, nullptr},
+		{"ninth: basic",    R"(["ninth", ["array", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])",  9, nullptr},
+		{"tenth: basic",    R"(["tenth", ["array", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])",  10, nullptr},
+		{"first: empty",    R"(["first", ["array"]])",                   nullptr, nullptr},
+		{"first: non-arr",  R"(["first", 42])",                          nullptr, nullptr},
+		{"first: no args",  R"(["first"])",                              nullptr, nullptr},
+		{"third: too short", R"(["third", ["array", "a"]])",             nullptr, nullptr},
+	};
+	for (const auto& t : pos_tests) run_test(t);
+
+	// ── Lisp: cons / car / cdr ──────────────────────────────────
+	printf("\n── Lisp: cons / car / cdr ──\n");
+	vector<Test> lisp_tests = {
+		{"cons: prepend",        R"(["cons", 1, ["array", 2, 3]])",      json::parse("[1,2,3]"), nullptr},
+		{"cons: to empty",       R"(["cons", 1, ["array"]])",            json::parse("[1]"),     nullptr},
+		{"cons: non-array tail", R"(["cons", 1, 2])",                    nullptr,                nullptr},
+		{"cons: no args",        R"(["cons"])",                          nullptr,                nullptr},
+		{"car: basic",           R"(["car", ["array", 1, 2, 3]])",      1,       nullptr},
+		{"car: single elem",     R"(["car", ["array", 99]])",           99,      nullptr},
+		{"car: empty array",     R"(["car", ["array"]])",               nullptr, nullptr},
+		{"car: non-array",       R"(["car", 5])",                       nullptr, nullptr},
+		{"car: no args",         R"(["car"])",                          nullptr, nullptr},
+		{"cdr: basic",           R"(["cdr", ["array", 1, 2, 3]])",     json::parse("[2,3]"),   nullptr},
+		{"cdr: single elem",     R"(["cdr", ["array", 99]])",          json::parse("[]"),      nullptr},
+		{"cdr: empty array",     R"(["cdr", ["array"]])",              json::parse("[]"),      nullptr},
+		{"cdr: non-array",       R"(["cdr", 5])",                      json::parse("[]"),      nullptr},
+		{"cdr: no args",         R"(["cdr"])",                         nullptr,                nullptr},
+		{"car of cons",          R"(["car", ["cons", "x", ["array", "y"]]])", "x", nullptr},
+		{"cdr of cons",          R"(["cdr", ["cons", "x", ["array", "y"]]])", json::parse(R"(["y"])"), nullptr},
+	};
+	for (const auto& t : lisp_tests) run_test(t);
+
+	// ── String Functions ────────────────────────────────────────
+	printf("\n── String Functions ──\n");
+	vector<Test> str_tests = {
+		{"lowercase: basic",       R"(["lowercase", "HELLO"])",       "hello",   nullptr},
+		{"lowercase: mixed",       R"(["lowercase", "HeLLo"])",       "hello",   nullptr},
+		{"lowercase: already low", R"(["lowercase", "hello"])",       "hello",   nullptr},
+		{"lowercase: non-string",  R"(["lowercase", 42])",            nullptr,   nullptr},
+		{"lowercase: no args",     R"(["lowercase"])",                nullptr,   nullptr},
+		{"uppercase: basic",       R"(["uppercase", "hello"])",       "HELLO",   nullptr},
+		{"uppercase: mixed",       R"(["uppercase", "HeLLo"])",       "HELLO",   nullptr},
+		{"uppercase: already up",  R"(["uppercase", "HELLO"])",       "HELLO",   nullptr},
+		{"uppercase: non-string",  R"(["uppercase", 42])",            nullptr,   nullptr},
+		{"uppercase: no args",     R"(["uppercase"])",                nullptr,   nullptr},
+		{"trim: leading",          R"(["trim", "  hello"])",          "hello",   nullptr},
+		{"trim: trailing",         R"(["trim", "hello  "])",          "hello",   nullptr},
+		{"trim: both",             R"(["trim", "  hello  "])",        "hello",   nullptr},
+		{"trim: tabs/newlines",    R"(["trim", "\t hello \n"])",      "hello",   nullptr},
+		{"trim: no whitespace",    R"(["trim", "hello"])",            "hello",   nullptr},
+		{"trim: all whitespace",   R"(["trim", "   "])",              "",        nullptr},
+		{"trim: non-string",       R"(["trim", 42])",                 nullptr,   nullptr},
+		{"trim: no args",          R"(["trim"])",                     nullptr,   nullptr},
+		{"concat: two strings",    R"(["concat", "hello", " world"])", "hello world", nullptr},
+		{"concat: multi",          R"(["concat", "a", "b", "c"])",    "abc",     nullptr},
+		{"concat: empty",          R"(["concat"])",                    "",        nullptr},
+		{"concat: skip non-str",   R"(["concat", "a", 1, "b"])",      "ab",      nullptr},
+		{"join: no separator",     R"(["join", ["array", "a", "b", "c"]])", "abc", nullptr},
+		{"join: with separator",   R"(["join", ["array", "a", "b", "c"], ", "])", "a, b, c", nullptr},
+		{"join: single element",   R"(["join", ["array", "hello"]])", "hello",   nullptr},
+		{"join: empty array",      R"(["join", ["array"]])",          "",        nullptr},
+		{"join: non-array",        R"(["join", "hello"])",            nullptr,   nullptr},
+		{"join: no args",          R"(["join"])",                     nullptr,   nullptr},
+		{"split: no delimiter",    R"(["split", "abc"])",             json::parse(R"(["a","b","c"])"), nullptr},
+		{"split: with delimiter",  R"(["split", "a,b,c", ","])",     json::parse(R"(["a","b","c"])"), nullptr},
+		{"split: multi-char delim", R"(["split", "a--b--c", "--"])", json::parse(R"(["a","b","c"])"), nullptr},
+		{"split: no match",        R"(["split", "abc", ","])",       json::parse(R"(["abc"])"),       nullptr},
+		{"split: empty string",    R"(["split", "", ","])",          json::parse(R"([""])"),          nullptr},
+		{"split: non-string",      R"(["split", 42])",               nullptr,   nullptr},
+		{"split: no args",         R"(["split"])",                   nullptr,   nullptr},
+	};
+	for (const auto& t : str_tests) run_test(t);
+
+	// ── Contains ────────────────────────────────────────────────
+	printf("\n── Contains ──\n");
+	vector<Test> contains_tests = {
+		{"contains: array has elem",     R"(["contains", ["array", 1, 2, 3], 2])",    true,  nullptr},
+		{"contains: array missing",      R"(["contains", ["array", 1, 2, 3], 5])",    false, nullptr},
+		{"contains: array string elem",  R"(["contains", ["array", "a", "b"], "b"])", true,  nullptr},
+		{"contains: array empty",        R"(["contains", ["array"], 1])",              false, nullptr},
+		{"contains: string has substr",  R"(["contains", "hello world", "world"])",    true,  nullptr},
+		{"contains: string missing",     R"(["contains", "hello world", "xyz"])",      false, nullptr},
+		{"contains: string empty needle", R"(["contains", "hello", ""])",              true,  nullptr},
+		{"contains: non-coll",           R"(["contains", 42, 4])",                     false, nullptr},
+		{"contains: no args",            R"(["contains"])",                             false, nullptr},
+	};
+	for (const auto& t : contains_tests) run_test(t);
 
 	// ── Min / Max ───────────────────────────────────────────────
 	printf("\n── Min / Max ──\n");
@@ -280,8 +464,105 @@ main() {
 		{"type check pattern",
 			R"(["if", ["=", ["type", 42], "number"], "is number", "not number"])",
 			"is number", nullptr},
+		{"cons + car roundtrip",
+			R"(["car", ["cons", "head", ["array", "tail"]]])",
+			"head", nullptr},
+		{"split then join roundtrip",
+			R"(["join", ["split", "a,b,c", ","], ","])",
+			"a,b,c", nullptr},
+		{"and + not combo",
+			R"(["and", ["not", false], ["not", null]])",
+			true, nullptr},
+		{"compact + length",
+			R"(["length", ["compact", ["array", 1, null, 2, null]]])",
+			2, nullptr},
+		{"reverse + first = last",
+			R"(["first", ["reverse", ["array", 1, 2, 3]]])",
+			3, nullptr},
+		{"uppercase + trim",
+			R"(["uppercase", ["trim", "  hello  "]])",
+			"HELLO", nullptr},
+		{"contains + if pattern",
+			R"(["if", ["contains", ["array", "a", "b", "c"], "b"], "found", "missing"])",
+			"found", nullptr},
 	};
 	for (const auto& t : integration_tests) run_test(t);
+
+	// ── Trace ───────────────────────────────────────────────────
+	printf("\n── Trace ──\n");
+
+	// Helper to run trace tests
+	auto run_trace_test = [&](string name, string expr, json expected_trace, json scope_data = nullptr) {
+		Scope scope = Scope(scope_data.is_null() ? json::object() : scope_data);
+		Trace trace;
+		trace.start();
+		scope.trace = &trace;
+
+		Node node = parse(expr);
+		node.eval(&scope);
+
+		scope.trace = nullptr;
+		json result = trace.stop();
+
+		bool ok = (result == expected_trace);
+		if (ok) {
+			passed++;
+			printf("  PASS  %s\n", name.c_str());
+		} else {
+			failed++;
+			printf("  FAIL  %s\n", name.c_str());
+			printf("        expected: %s\n", expected_trace.dump().c_str());
+			printf("        got:      %s\n", result.dump().c_str());
+		}
+	};
+
+	run_trace_test("trace: bare value",
+		"5", json(5));
+
+	run_trace_test("trace: simple add",
+		R"(["+", 1, 2])",
+		json::parse("[3.0, 1, 2]"));
+
+	run_trace_test("trace: nested arithmetic",
+		R"(["+", 1, ["-", 5, 2]])",
+		json::parse("[4.0, 1, [3.0, 5, 2]]"));
+
+	run_trace_test("trace: deep nesting",
+		R"(["*", ["+", 1, 2], ["-", 10, 4]])",
+		json::parse("[18.0, [3.0, 1, 2], [6.0, 10, 4]]"));
+
+	run_trace_test("trace: if true path",
+		R"(["if", true, "yes", "no"])",
+		json::parse(R"(["yes", true, "yes"])"));
+
+	run_trace_test("trace: if false path",
+		R"(["if", false, "yes", "no"])",
+		json::parse(R"(["no", false, null, "no"])"));
+
+	run_trace_test("trace: if nested condition",
+		R"(["if", ["=", 1, 1], "yes", "no"])",
+		json::parse(R"(["yes", [true, 1, 1], "yes"])"));
+
+	run_trace_test("trace: var lookup",
+		R"(["var", "x"])",
+		json::parse("[5]"),
+		json::parse(R"({"x": 5})"));
+
+	run_trace_test("trace: equality",
+		R"(["=", 5, 5])",
+		json::parse("[true, 5, 5]"));
+
+	run_trace_test("trace: let basic",
+		R"(["let", [["x", 5]], ["var", "x"]])",
+		json::parse(R"([5, "x", 5, [5]])"));
+
+	run_trace_test("trace: let with expression",
+		R"(["let", [["x", ["+", 1, 2]]], ["var", "x"]])",
+		json::parse(R"([3.0, "x", [3.0, 1, 2], [3.0]])"));
+
+	run_trace_test("trace: and short-circuits",
+		R"(["and", true, false])",
+		json::parse("[false, true, false]"));
 
 	// ── Summary ─────────────────────────────────────────────────
 	printf("\n────────────────────────────\n");

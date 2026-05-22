@@ -109,16 +109,21 @@ Node::is_value() const {
 
 json
 Node::eval(Scope* scope) const {
+	if (scope->trace) scope->trace->enter();
+
+	json result;
 	if (this->is_command()) {
 		if (this->command != nullptr) {
-			json evaluated = this->command(this->params, scope);
-			return evaluated;
+			result = this->command(this->params, scope);
 		} else {
-			return this->value;
+			result = this->value;
 		}
 	} else {
-		return this->value;
+		result = this->value;
 	}
+
+	if (scope->trace) scope->trace->exit(result, this->is_command());
+	return result;
 }
 
 Node
@@ -139,21 +144,19 @@ parse_nodes(json blob) {
 		if (f_name == "let") {
 			i32 children = blob.size();
 			if (children == 3) {
-				// let block
+				// bindings
 				if (blob[1].is_array()) {
-					json let_cmd = json::parse("[\"array\"]");
 					i32 let_items = blob[1].size();
 					for (i32 i = 0; i < let_items; i++) {
-						json set_cmd = json::parse("[\"set\"]");
-						i32 set_items = blob[1][i].size();
-						for (i32 n = 0; n < set_items; n++) {
-							set_cmd.push_back(blob[1][i][n]);
+						// key
+						node.params.push_back(parse_nodes(blob[1][i][0]));
+						// value
+						if (blob[1][i].size() >= 2) {
+							node.params.push_back(parse_nodes(blob[1][i][1]));
+						} else {
+							node.params.push_back(parse_nodes(json()));
 						}
-						let_cmd.push_back(set_cmd);
 					}
-					node.params.push_back(parse_nodes(let_cmd));
-				} else {
-					node.params.push_back(parse_nodes(json()));
 				}
 
 				// do block

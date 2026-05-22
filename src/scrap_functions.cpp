@@ -87,6 +87,10 @@ S_if(const vector<Node>& params, Scope* scope) {
 				return true_path.eval(scope);
 			} else {
 				if (params.size() > 2) {
+					// Insert null trace for skipped true path
+					if (scope->trace && scope->trace->active) {
+						scope->trace->stack.back().children.push_back(nullptr);
+					}
 					Node false_path = params[2];
 					return false_path.eval(scope);
 				}
@@ -99,17 +103,21 @@ S_if(const vector<Node>& params, Scope* scope) {
 
 json
 S_let(const vector<Node>& params, Scope* scope) {
-	if (params.size() < 2) {
+	if (params.size() < 3) {
 		return json();
 	}
 
 	scope->push_frame();
 
-	// run all but last item
-	// these are all just setting scope
-	for (i32 i = 0; i < params.size() - 1; i++) {
-		Node v = params[i];
-		json evaluated = v.eval(scope);
+	i32 binding_end = params.size() - 1;
+	for (i32 i = 0; i < binding_end; i += 2) {
+		Node key = params[i];
+		Node val = params[i + 1];
+		json key_eval = key.eval(scope);
+		json val_eval = val.eval(scope);
+		if (key_eval.is_string()) {
+			scope->set(key_eval.get<string>(), val_eval);
+		}
 	}
 
 	Node body = params[params.size() - 1];
@@ -1105,6 +1113,31 @@ S_print(const vector<Node>& params, Scope* scope) {
 
 	Node haystack = params[0];
 	json evaluated = haystack.eval(scope);
+
+	const char* type_name = "unknown";
+	switch (evaluated.type()) {
+		case json::value_t::null: type_name = "null"; break;
+		case json::value_t::object: type_name = "object"; break;
+		case json::value_t::array: type_name = "array"; break;
+		case json::value_t::boolean: type_name = "boolean"; break;
+		case json::value_t::number_integer: type_name = "number"; break;
+		case json::value_t::number_unsigned: type_name = "number"; break;
+		case json::value_t::number_float: type_name = "number"; break;
+		case json::value_t::string: type_name = "string"; break;
+		default: break;
+	}
+
+	if (params.size() >= 2) {
+		Node label_node = params[1];
+		json label = label_node.eval(scope);
+		if (label.is_string()) {
+			printf("%s -> %s : %s\n", label.get<string>().c_str(), type_name, evaluated.dump().c_str());
+		} else {
+			printf("%s -> %s : %s\n", label.dump().c_str(), type_name, evaluated.dump().c_str());
+		}
+	} else {
+		printf("%s : %s\n", type_name, evaluated.dump().c_str());
+	}
 
 	return evaluated;
 }
