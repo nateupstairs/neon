@@ -29,17 +29,18 @@ S_get(const vector<Node>& params, Scope* scope) {
 
 	for (i32 i = 1; i < params.size(); i++) {
 		Node param = params[i];
+		json key = param.is_command() ? param.eval(scope) : param.value;
 
-		if (param.is_string() && result.is_object()) {
-			string key = param.value.get<string>();
+		if (key.is_string() && result.is_object()) {
+			string key_str = key.get<string>();
 
-			if (result.contains(key)) {
-				result = result.at(key);
+			if (result.contains(key_str)) {
+				result = result.at(key_str);
 			} else {
 				return json();
 			}
-		} else if (param.is_number() && result.is_array()) {
-			i32 index = param.value.get<i32>();
+		} else if (key.is_number() && result.is_array()) {
+			i32 index = key.get<i32>();
 
 			if (index < result.size()) {
 				result = result.at(index);
@@ -68,6 +69,7 @@ S_set(const vector<Node>& params, Scope* scope) {
 		string key_string = key.value.get<string>();
 		json solved = val.eval(scope);
 		scope->set(key_string, solved);
+		return solved;
 	}
 
 	return json();
@@ -1142,6 +1144,93 @@ S_print(const vector<Node>& params, Scope* scope) {
 	return evaluated;
 }
 
+json
+S_exists(const vector<Node>& params, Scope* scope) {
+	if (params.empty()) {
+		return false;
+	}
+
+	Node v = params[0];
+	json evaluated = v.eval(scope);
+
+	switch (evaluated.type()) {
+		case json::value_t::object:
+			return true;
+		case json::value_t::array:
+			return !evaluated.empty();
+		case json::value_t::number_integer:
+		case json::value_t::number_unsigned:
+		case json::value_t::number_float:
+			return true;
+		case json::value_t::string:
+			return !evaluated.get<string>().empty();
+		case json::value_t::boolean:
+			return evaluated.get<bool>();
+		default:
+			return false;
+	}
+}
+
+json
+S_range(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 2) {
+		return json::parse("[]");
+	}
+
+	Node start_node = params[0];
+	json start_val = start_node.eval(scope);
+
+	Node end_node = params[1];
+	json end_val = end_node.eval(scope);
+
+	if (!start_val.is_number() || !end_val.is_number()) {
+		return json::parse("[]");
+	}
+
+	i32 start = (i32)start_val.get<f64>();
+	i32 end = (i32)end_val.get<f64>();
+
+	json result = json::parse("[]");
+	for (i32 i = start; i <= end; i++) {
+		result.push_back(i);
+	}
+
+	return result;
+}
+
+json
+S_foreach(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 3) {
+		return json();
+	}
+
+	Node var_node = params[0];
+	if (!var_node.is_string()) {
+		return json();
+	}
+	string var_name = var_node.value.get<string>();
+
+	Node list_node = params[1];
+	json list = list_node.eval(scope);
+
+	if (!list.is_array()) {
+		return json();
+	}
+
+	Node body = params[2];
+	json result = json();
+
+	scope->push_frame();
+
+	for (i32 i = 0; i < list.size(); i++) {
+		scope->set(var_name, list.at(i));
+		result = body.eval(scope);
+	}
+
+	scope->pop_frame();
+	return result;
+}
+
 std::unordered_map<string, ScrapFunction> operations = {
 	{"get", &S_get},
 	{"set", &S_set},
@@ -1201,6 +1290,9 @@ std::unordered_map<string, ScrapFunction> operations = {
 	{"reverse", &S_reverse},
 	{"last", &S_last},
 	{"compact", &S_compact},
+	{"exists", &S_exists},
+	{"range", &S_range},
+	{"for-each", &S_foreach},
 };
 
 ScrapFunction get_scrap_function(const string& key) {

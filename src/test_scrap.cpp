@@ -564,6 +564,73 @@ main() {
 		R"(["and", true, false])",
 		json::parse("[false, true, false]"));
 
+	// ── Trace: range ────────────────────────────────────────────
+	printf("\n── Trace: range ──\n");
+
+	run_trace_test("trace: range basic",
+		R"(["range", 1, 3])",
+		json::parse("[[1,2,3], 1, 3]"));
+
+	run_trace_test("trace: range single element",
+		R"(["range", 5, 5])",
+		json::parse("[[5], 5, 5]"));
+
+	run_trace_test("trace: range with expressions",
+		R"(["range", ["+", 0, 1], ["-", 5, 2]])",
+		json::parse("[[1,2,3], [1.0, 0, 1], [3.0, 5, 2]]"));
+
+	// ── Trace: for-each ─────────────────────────────────────────
+	printf("\n── Trace: for-each ──\n");
+
+	run_trace_test("trace: for-each simple body",
+		R"(["for-each", "i", ["array", 10, 20], ["get", "i"]])",
+		json::parse("[20, [[10,20], 10, 20], [10], [20]]"),
+		json::parse("{}"));
+
+	run_trace_test("trace: for-each with arithmetic body",
+		R"(["for-each", "i", ["array", 1, 2, 3], ["+", ["get", "i"], 10]])",
+		json::parse("[13.0, [[1,2,3], 1, 2, 3], [11.0, [1], 10], [12.0, [2], 10], [13.0, [3], 10]]"),
+		json::parse("{}"));
+
+	// ── Trace: for-each + range ─────────────────────────────────
+	printf("\n── Trace: for-each + range ──\n");
+
+	run_trace_test("trace: for-each over range",
+		R"(["for-each", "i", ["range", 1, 3], ["+", ["get", "i"], 10]])",
+		json::parse("[13.0, [[1,2,3], 1, 3], [11.0, [1], 10], [12.0, [2], 10], [13.0, [3], 10]]"),
+		json::parse("{}"));
+
+	// ── Trace: for-each + set accumulator ───────────────────────
+	printf("\n── Trace: for-each + set (accumulator) ──\n");
+
+	run_trace_test("trace: for-each set accumulator",
+		R"(["for-each", "i", ["array", 1, 2, 3],
+			["set", "total", ["+", ["get", "total"], ["get", "i"]]]])",
+		json::parse(R"([6.0,
+			[[1,2,3], 1, 2, 3],
+			[1.0, [1.0, [0], [1]]],
+			[3.0, [3.0, [1.0], [2]]],
+			[6.0, [6.0, [3.0], [3]]]
+		])"),
+		json::parse(R"({"total": 0})"));
+
+	// ── Trace: let + for-each + range (full pattern) ────────────
+	printf("\n── Trace: let + for-each + range ──\n");
+
+	run_trace_test("trace: let + for-each + range accumulator",
+		R"(["let",
+			[["total", 0]],
+			["for-each", "i", ["range", 1, 2],
+				["set", "total", ["+", ["get", "total"], ["get", "i"]]]]])",
+		json::parse(R"([3.0,
+			"total", 0,
+			[3.0, [[1,2], 1, 2],
+				[1.0, [1.0, [0], [1]]],
+				[3.0, [3.0, [1.0], [2]]]
+			]
+		])"),
+		json::parse("{}"));
+
 	// ── Summary ─────────────────────────────────────────────────
 	printf("\n────────────────────────────\n");
 	printf("  %d passed, %d failed, %d total\n\n", passed, failed, passed + failed);

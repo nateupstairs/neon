@@ -163,6 +163,16 @@ parse_nodes(json blob) {
 				json child_data = blob.at(2);
 				node.params.push_back(parse_nodes(child_data));
 			}
+		} else if (f_name == "for-each") {
+			i32 children = blob.size();
+			if (children == 4) {
+				// variable name
+				node.params.push_back(parse_nodes(blob[1]));
+				// list expression
+				node.params.push_back(parse_nodes(blob[2]));
+				// body expression
+				node.params.push_back(parse_nodes(blob[3]));
+			}
 		// regular case
 		} else if (node.command != nullptr) {
 			i32 children = blob.size();

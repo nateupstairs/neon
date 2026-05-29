@@ -101,81 +101,88 @@ main() {
 	printf("%f\n", v4);
 	printf("%f\n", v5);
 
-	json scope_json = json::parse(R"(
-		{
-			"test": "yes",
-			"deep": {
-				"var": {
-					"test": false
-				}
-			}
-		}
-	)");
-	Node n = parse(R"(
-		["*",
-			["+",
-				1,
-				["-", 10, 5]
-			],
-			1.5
-		]
-	)");
-	Scope scope = Scope(scope_json);
-	json result = n.eval(&scope);
+	// json scope_json = json::parse(R"(
+	// 	{
+	// 		"test": "yes",
+	// 		"deep": {
+	// 			"var": {
+	// 				"test": false
+	// 			}
+	// 		}
+	// 	}
+	// )");
+	// Node n = parse(R"(
+	// 	["*",
+	// 		["+",
+	// 			1,
+	// 			["-", 10, 5]
+	// 		],
+	// 		1.5
+	// 	]
+	// )");
+	// Scope scope = Scope(scope_json);
+	// json result = n.eval(&scope);
 
-	if (result.is_number()) {
-		printf("eval: %f\n", result.get<f64>());
-	}
+	// if (result.is_number()) {
+	// 	printf("eval: %f\n", result.get<f64>());
+	// }
 
-	Node n2 = parse(R"(
-		["var", "test"]
-	)");
-	json result2 = n2.eval(&scope);
+	// Node n2 = parse(R"(
+	// 	["var", "test"]
+	// )");
+	// json result2 = n2.eval(&scope);
 
-	if (result2.is_string()) {
-		printf("eval: %s\n", result2.get<string>().c_str());
-	}
+	// if (result2.is_string()) {
+	// 	printf("eval: %s\n", result2.get<string>().c_str());
+	// }
 
-	Node n3 = parse(R"(
-		["if",
-			["=",
-				"yes",
-				"no"
-			],
-			"true path",
-			"false path"
-		]
-	)");
-	json result3 = n3.eval(&scope);
+	// Node n3 = parse(R"(
+	// 	["if",
+	// 		["=",
+	// 			"yes",
+	// 			"no"
+	// 		],
+	// 		"true path",
+	// 		"false path"
+	// 	]
+	// )");
+	// json result3 = n3.eval(&scope);
 
-	if (result3.is_string()) {
-		printf("eval: %s\n", result3.get<string>().c_str());
-	}
+	// if (result3.is_string()) {
+	// 	printf("eval: %s\n", result3.get<string>().c_str());
+	// }
 
-	Node n4 = parse(R"(
-		["var",
-			"deep",
-			"var",
-			"test"
-		]
-	)");
-	json result4 = n4.eval(&scope);
+	// Node n4 = parse(R"(
+	// 	["var",
+	// 		"deep",
+	// 		"var",
+	// 		"test"
+	// 	]
+	// )");
+	// json result4 = n4.eval(&scope);
 
-	if (result4.is_boolean()) {
-		printf("eval: %d\n", result4.get<bool>());
-	}
+	// if (result4.is_boolean()) {
+	// 	printf("eval: %d\n", result4.get<bool>());
+	// }
 
-	Node n5 = parse(R"(
-		[">=",
-			10,
-			["floor", 10.00001]
-		]
-	)");
-	json result5 = n5.eval(&scope);
+	// Node n5 = parse(R"(
+	// 	[">=",
+	// 		10,
+	// 		["floor", 10.00001]
+	// 	]
+	// )");
+	// json result5 = n5.eval(&scope);
 
-	if (result5.is_boolean()) {
-		printf("eval: %d\n", result5.get<bool>());
-	}
+	// if (result5.is_boolean()) {
+	// 	printf("eval: %d\n", result5.get<bool>());
+	// }
+
+	// Node n5t = parse(R"(
+	// 	51
+	// )");
+	// json result5t = n5t.eval(&scope);
+
+	// printf("evallypal: %s\n", result5t.dump().c_str());
 
 	json component_scope_json = json::parse(R"({
 		"component": ["ds-webflow-sidepanel", {
@@ -197,10 +204,10 @@ main() {
 			    }
 			},
 			"do-pip": false,
-			"camera-layout": "split",
+			"camera-layout": "bubble",
 	        "meta": {
 	            "display": "List with Media",
-	            "isClipComponent": true,
+	            "isClipComponent": false,
 	            "lastUpdated": 1770848134575,
 	            "tag": {
 	                "id": "64d3f08a40686237d0944c66",
@@ -219,59 +226,106 @@ main() {
 
 	Scope component_scope = Scope(component_scope_json);
 
-	Node n6 = parse(R"(
-		["let",
-			[
-				["media-dur",
-					["get",
-						"component",
-						1,
-						"media",
-						"originalDuration"
-					]
-				]
-			],
-			["if",
-				["=",
-					["type", ["get", "media-dur"]],
-					"number"
-				],
-				["floor", ["get", "media-dur"]],
-				null
-			]
-		]
-	)");
-	json result6 = n6.eval(&component_scope);
+	// Node n6 = parse(R"(
+	// 	["let",
+	// 		[
+	// 			["media-dur",
+	// 				["get",
+	// 					"component",
+	// 					1,
+	// 					"media",
+	// 					"originalDuration"
+	// 				]
+	// 			]
+	// 		],
+	// 		["if",
+	// 			["=",
+	// 				["type", ["get", "media-dur"]],
+	// 				"number"
+	// 			],
+	// 			["floor", ["get", "media-dur"]],
+	// 			null
+	// 		]
+	// 	]
+	// )");
+	// json result6 = n6.eval(&component_scope);
 
-	printf("media-dur: %s\n", result6.dump().c_str());
+	// printf("media-dur: %s\n", result6.dump().c_str());
 
 	Node n7 = parse(R"(
 		["let",
 			[
 				["params", ["nth", ["var", "component"], 1]],
-				["do-pip", ["get", ["var", "params"], "do-pip"]],
-				["layout", ["get", ["var", "params"], "camera-layout"]]
+				["is-clip", ["var", "params", "meta", "isClipComponent"]],
+				["do-pip", ["var", "params", "do-pip"]],
+				["layout", ["var", "params", "camera-layout"]]
 			],
 			["if",
-				["var", "do-pip"],
-				["if",
-					["=", ["var", "layout"], "not-split"],
-					["array",
-						"camera-shape"
-					],
-					null
-				],
+				["=", ["var", "is-clip"], true],
 				["array",
+					"do-pip",
 					"camera-layout",
 					"camera-shape",
 					"camera-size",
 					"camera-position"
+				],
+				["if",
+					["print", ["var", "do-pip"], "debugger1"],
+					["if",
+						["=", ["var", "layout"], "split"],
+						["array",
+							"camera-shape"
+						],
+						null
+					],
+					["array",
+						"camera-layout",
+						"camera-shape",
+						"camera-size",
+						"camera-position"
+					]
 				]
 			]
 		]
 	)");
 	json result7 = n7.eval(&component_scope);
 	printf("debuging: %s\n", result7.dump().c_str());
+
+	// test range
+	json range_scope_json = json::parse("{}");
+	Scope range_scope = Scope(range_scope_json);
+	Node n_range = parse(R"(["range", 1, 7])");
+	json result_range = n_range.eval(&range_scope);
+	printf("range: %s\n", result_range.dump().c_str());
+
+	// test foreach + set accumulator pattern
+	json foreach_scope_json = json::parse(R"({
+		"params": {
+			"image-1": {"file": "a.png"},
+			"image-2": {"file": "b.png"},
+			"image-3": {},
+			"image-5": {"file": "e.png"},
+			"image-7": {"file": "g.png"}
+		}
+	})");
+	Scope foreach_scope = Scope(foreach_scope_json);
+	Node n_foreach = parse(R"(
+		["let",
+			[
+				["total", 0]
+			],
+			["for-each", "i", ["range", 1, 7],
+				["set", "total",
+					["+", ["get", "total"],
+						["if",
+							["exists",
+								["get", "params",
+									["concat", "image-", ["to-string", ["get", "i"]]],
+									"file"]],
+							1, 0]]]]]
+	)");
+	json result_foreach = n_foreach.eval(&foreach_scope);
+	printf("foreach count: %s\n", result_foreach.dump().c_str());
 
 	return 0;
 }
