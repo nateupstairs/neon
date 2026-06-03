@@ -15,21 +15,23 @@ S_get(const vector<Node>& params, Scope* scope) {
 	}
 
 	Node v = params[0];
-	if (v.is_string()) {
-		string key = v.value.get<string>();
+	json first = v.eval(scope);
+
+	if (first.is_string()) {
+		string key = first.get<string>();
 		bool exists = scope->exists(key);
 		if (exists) {
 			result = scope->get(key);
 		} else {
 			return json();
 		}
-	} else if (v.is_command()) {
-		result = v.eval(scope);
+	} else {
+		result = first;
 	}
 
 	for (i32 i = 1; i < params.size(); i++) {
 		Node param = params[i];
-		json key = param.is_command() ? param.eval(scope) : param.value;
+		json key = param.eval(scope);
 
 		if (key.is_string() && result.is_object()) {
 			string key_str = key.get<string>();
@@ -63,10 +65,10 @@ S_set(const vector<Node>& params, Scope* scope) {
 
 	Node key = params[0];
 	Node val = params[1];
-	if (
-		key.is_string()
-	) {
-		string key_string = key.value.get<string>();
+	json key_eval = key.eval(scope);
+
+	if (key_eval.is_string()) {
+		string key_string = key_eval.get<string>();
 		json solved = val.eval(scope);
 		scope->set(key_string, solved);
 		return solved;
@@ -1172,6 +1174,126 @@ S_exists(const vector<Node>& params, Scope* scope) {
 }
 
 json
+S_add_assign(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 2) {
+		return json();
+	}
+
+	Node key = params[0];
+	if (!key.is_string()) {
+		return json();
+	}
+
+	string var_name = key.value.get<string>();
+	json current = scope->get(var_name);
+
+	if (!current.is_number()) {
+		return json();
+	}
+
+	Node val = params[1];
+	json val_eval = val.eval(scope);
+
+	if (!val_eval.is_number()) {
+		return json();
+	}
+
+	json result = current.get<f64>() + val_eval.get<f64>();
+	scope->set(var_name, result);
+	return result;
+}
+
+json
+S_sub_assign(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 2) {
+		return json();
+	}
+
+	Node key = params[0];
+	if (!key.is_string()) {
+		return json();
+	}
+
+	string var_name = key.value.get<string>();
+	json current = scope->get(var_name);
+
+	if (!current.is_number()) {
+		return json();
+	}
+
+	Node val = params[1];
+	json val_eval = val.eval(scope);
+
+	if (!val_eval.is_number()) {
+		return json();
+	}
+
+	json result = current.get<f64>() - val_eval.get<f64>();
+	scope->set(var_name, result);
+	return result;
+}
+
+json
+S_mult_assign(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 2) {
+		return json();
+	}
+
+	Node key = params[0];
+	if (!key.is_string()) {
+		return json();
+	}
+
+	string var_name = key.value.get<string>();
+	json current = scope->get(var_name);
+
+	if (!current.is_number()) {
+		return json();
+	}
+
+	Node val = params[1];
+	json val_eval = val.eval(scope);
+
+	if (!val_eval.is_number()) {
+		return json();
+	}
+
+	json result = current.get<f64>() * val_eval.get<f64>();
+	scope->set(var_name, result);
+	return result;
+}
+
+json
+S_div_assign(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 2) {
+		return json();
+	}
+
+	Node key = params[0];
+	if (!key.is_string()) {
+		return json();
+	}
+
+	string var_name = key.value.get<string>();
+	json current = scope->get(var_name);
+
+	if (!current.is_number()) {
+		return json();
+	}
+
+	Node val = params[1];
+	json val_eval = val.eval(scope);
+
+	if (!val_eval.is_number() || val_eval.get<f64>() == 0) {
+		return json();
+	}
+
+	json result = current.get<f64>() / val_eval.get<f64>();
+	scope->set(var_name, result);
+	return result;
+}
+
+json
 S_range(const vector<Node>& params, Scope* scope) {
 	if (params.size() < 2) {
 		return json::parse("[]");
@@ -1293,6 +1415,10 @@ std::unordered_map<string, ScrapFunction> operations = {
 	{"exists", &S_exists},
 	{"range", &S_range},
 	{"for-each", &S_foreach},
+	{"+=", &S_add_assign},
+	{"-=", &S_sub_assign},
+	{"*=", &S_mult_assign},
+	{"/=", &S_div_assign},
 };
 
 ScrapFunction get_scrap_function(const string& key) {

@@ -545,7 +545,7 @@ main() {
 
 	run_trace_test("trace: var lookup",
 		R"(["var", "x"])",
-		json::parse("[5]"),
+		json::parse(R"([5, "x"])"),
 		json::parse(R"({"x": 5})"));
 
 	run_trace_test("trace: equality",
@@ -554,11 +554,11 @@ main() {
 
 	run_trace_test("trace: let basic",
 		R"(["let", [["x", 5]], ["var", "x"]])",
-		json::parse(R"([5, "x", 5, [5]])"));
+		json::parse(R"([5, "x", 5, [5, "x"]])"));
 
 	run_trace_test("trace: let with expression",
 		R"(["let", [["x", ["+", 1, 2]]], ["var", "x"]])",
-		json::parse(R"([3.0, "x", [3.0, 1, 2], [3.0]])"));
+		json::parse(R"([3.0, "x", [3.0, 1, 2], [3.0, "x"]])"));
 
 	run_trace_test("trace: and short-circuits",
 		R"(["and", true, false])",
@@ -584,12 +584,12 @@ main() {
 
 	run_trace_test("trace: for-each simple body",
 		R"(["for-each", "i", ["array", 10, 20], ["get", "i"]])",
-		json::parse("[20, [[10,20], 10, 20], [10], [20]]"),
+		json::parse(R"([20, [[10,20], 10, 20], [10, "i"], [20, "i"]])"),
 		json::parse("{}"));
 
 	run_trace_test("trace: for-each with arithmetic body",
 		R"(["for-each", "i", ["array", 1, 2, 3], ["+", ["get", "i"], 10]])",
-		json::parse("[13.0, [[1,2,3], 1, 2, 3], [11.0, [1], 10], [12.0, [2], 10], [13.0, [3], 10]]"),
+		json::parse(R"([13.0, [[1,2,3], 1, 2, 3], [11.0, [1, "i"], 10], [12.0, [2, "i"], 10], [13.0, [3, "i"], 10]])"),
 		json::parse("{}"));
 
 	// ── Trace: for-each + range ─────────────────────────────────
@@ -597,7 +597,7 @@ main() {
 
 	run_trace_test("trace: for-each over range",
 		R"(["for-each", "i", ["range", 1, 3], ["+", ["get", "i"], 10]])",
-		json::parse("[13.0, [[1,2,3], 1, 3], [11.0, [1], 10], [12.0, [2], 10], [13.0, [3], 10]]"),
+		json::parse(R"([13.0, [[1,2,3], 1, 3], [11.0, [1, "i"], 10], [12.0, [2, "i"], 10], [13.0, [3, "i"], 10]])"),
 		json::parse("{}"));
 
 	// ── Trace: for-each + set accumulator ───────────────────────
@@ -608,9 +608,9 @@ main() {
 			["set", "total", ["+", ["get", "total"], ["get", "i"]]]])",
 		json::parse(R"([6.0,
 			[[1,2,3], 1, 2, 3],
-			[1.0, [1.0, [0], [1]]],
-			[3.0, [3.0, [1.0], [2]]],
-			[6.0, [6.0, [3.0], [3]]]
+			[1.0, "total", [1.0, [0, "total"], [1, "i"]]],
+			[3.0, "total", [3.0, [1.0, "total"], [2, "i"]]],
+			[6.0, "total", [6.0, [3.0, "total"], [3, "i"]]]
 		])"),
 		json::parse(R"({"total": 0})"));
 
@@ -625,8 +625,8 @@ main() {
 		json::parse(R"([3.0,
 			"total", 0,
 			[3.0, [[1,2], 1, 2],
-				[1.0, [1.0, [0], [1]]],
-				[3.0, [3.0, [1.0], [2]]]
+				[1.0, "total", [1.0, [0, "total"], [1, "i"]]],
+				[3.0, "total", [3.0, [1.0, "total"], [2, "i"]]]
 			]
 		])"),
 		json::parse("{}"));

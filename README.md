@@ -201,6 +201,29 @@ Trace:      [4.0, 1, [3.0, 5, 2]]
 ```
 
 ```
+Expression: ["var", "x"]       (scope: {"x": 5})
+Trace:      [5, "x"]
+             ^   ^
+             |   └─ key that was accessed
+             └───── resolved value
+```
+
+```
+Expression: ["var", "obj", "nested", "key"]
+Trace:      [value, "obj", "nested", "key"]
+                    ^
+                    └─ full access path is visible
+```
+
+```
+Expression: ["set", "total", ["+", 1, 2]]
+Trace:      [3.0, "total", [3.0, 1, 2]]
+                   ^        ^
+                   |        └─ trace of value expression
+                   └─ key that was written
+```
+
+```
 Expression: ["if", true, "yes", "no"]
 Trace:      ["yes", true, "yes"]
                           ^
@@ -221,22 +244,23 @@ Trace:      [[1,2,3], 1, 3]
 
 ```
 Expression: ["for-each", "i", ["range", 1, 3], ["+", ["get", "i"], 10]]
-Trace:      [13.0, [[1,2,3], 1, 3], [11.0, [1], 10], [12.0, [2], 10], [13.0, [3], 10]]
-                    ^                ^                 ^                 ^
-                    |                |                 |                 └─ iteration 3
-                    |                |                 └─ iteration 2
-                    |                └─ iteration 1
+Trace:      [13.0, [[1,2,3], 1, 3], [11.0, [1,"i"], 10], [12.0, [2,"i"], 10], [13.0, [3,"i"], 10]]
+                    ^                ^                     ^                     ^
+                    |                |                     |                     └─ iteration 3
+                    |                |                     └─ iteration 2
+                    |                └─ iteration 1 (get "i" → 1, + 10 → 11)
                     └─ list expression trace
 ```
 
 ### Trace structure rules
 
 1. The trace tree mirrors the evaluation tree, not the syntax tree.
-2. Only sub-expressions that are actually `eval()`'d produce trace children. Parameters read directly (e.g., the variable name in `for-each`, the key in `set`/`get`) do not appear.
-3. `for-each` produces one child for the list evaluation, then one child per iteration of the body.
-4. `let` produces children for each binding (key eval, value eval in pairs), then the body trace.
-5. `if` inserts a `null` placeholder for skipped branches so the position of the taken branch is stable.
-6. The top-level trace is the single root entry (value or command array).
+2. `get`/`var` include the access path as children: `[resolved_value, key1, key2, ...]`
+3. `set` includes the key and value trace: `[result, key, value_trace]`
+4. `for-each` produces one child for the list evaluation, then one child per iteration of the body. The binding variable name does not appear directly (it's read without eval), but is visible in `get` traces within the body.
+5. `let` produces children for each binding (key eval, value eval in pairs), then the body trace.
+6. `if` inserts a `null` placeholder for skipped branches so the position of the taken branch is stable.
+7. The top-level trace is the single root entry (value or command array).
 
 ### Accumulator pattern
 
@@ -259,11 +283,11 @@ The trace for this shows the accumulation across iterations:
   "total", 0,
   [6.0,
     [[1,2,3], 1, 3],
-    [1.0, [1.0, [0], [1]]],
-    [3.0, [3.0, [1.0], [2]]],
-    [6.0, [6.0, [3.0], [3]]]
+    [1.0, "total", [1.0, [0, "total"], [1, "i"]]],
+    [3.0, "total", [3.0, [1.0, "total"], [2, "i"]]],
+    [6.0, "total", [6.0, [3.0, "total"], [3, "i"]]]
   ]
 ]
 ```
 
-Each iteration's `set` trace shows `[new_total, [add_trace, [prev_total], [i_value]]]`, making it possible to reconstruct the full execution history.
+Each iteration's `set` trace shows `[new_value, "key", [add_trace, [prev_total, "total"], [i_value, "i"]]]`. Variable names are preserved at every access point, making it possible to reconstruct the full execution history and see exactly which variables contributed to each result.
