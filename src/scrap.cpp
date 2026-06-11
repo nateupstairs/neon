@@ -173,6 +173,19 @@ parse_nodes(json blob) {
 				// body expression
 				node.params.push_back(parse_nodes(blob[3]));
 			}
+		} else if (f_name == "object") {
+			i32 children = blob.size();
+			if (children == 2 && blob[1].is_array()) {
+				i32 items = blob[1].size();
+				for (i32 i = 0; i < items; i++) {
+					node.params.push_back(parse_nodes(blob[1][i][0]));
+					if (blob[1][i].size() >= 2) {
+						node.params.push_back(parse_nodes(blob[1][i][1]));
+					} else {
+						node.params.push_back(parse_nodes(json()));
+					}
+				}
+			}
 		// regular case
 		} else if (node.command != nullptr) {
 			i32 children = blob.size();

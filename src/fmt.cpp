@@ -3,6 +3,7 @@
 #include "fmt.h"
 
 #include "base.h"
+#include <set>
 
 namespace Neon {
 

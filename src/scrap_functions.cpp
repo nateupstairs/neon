@@ -1353,6 +1353,73 @@ S_foreach(const vector<Node>& params, Scope* scope) {
 	return result;
 }
 
+json
+S_object(const vector<Node>& params, Scope* scope) {
+	json result = json::object();
+
+	for (i32 i = 0; i + 1 < params.size(); i += 2) {
+		Node key_node = params[i];
+		Node val_node = params[i + 1];
+		json key_eval = key_node.eval(scope);
+		json val_eval = val_node.eval(scope);
+
+		string key;
+		if (key_eval.is_string()) {
+			key = key_eval.get<string>();
+		} else {
+			key = key_eval.dump();
+		}
+		result[key] = val_eval;
+	}
+
+	return result;
+}
+
+json
+S_switch(const vector<Node>& params, Scope* scope) {
+	if (params.size() < 2) {
+		return json();
+	}
+
+	Node value_node = params[0];
+	json value = value_node.eval(scope);
+
+	Node cases_node = params[1];
+	json cases = cases_node.eval(scope);
+
+	if (!cases.is_object()) {
+		return json();
+	}
+
+	string key;
+	if (value.is_string()) {
+		key = value.get<string>();
+	} else if (value.is_number_integer()) {
+		key = std::to_string(value.get<i64>());
+	} else if (value.is_number_unsigned()) {
+		key = std::to_string(value.get<u64>());
+	} else if (value.is_number_float()) {
+		key = std::to_string((i64)value.get<f64>());
+	} else if (value.is_boolean()) {
+		key = value.get<bool>() ? "true" : "false";
+	} else {
+		if (cases.contains("_")) {
+			return cases.at("_");
+		}
+		return json();
+	}
+
+	if (cases.contains(key)) {
+		return cases.at(key);
+	}
+
+	if (cases.contains("_")) {
+		return cases.at("_");
+	}
+
+	return json();
+}
+
 std::unordered_map<string, ScrapFunction> operations = {
 	{"get", &S_get},
 	{"set", &S_set},
@@ -1419,6 +1486,8 @@ std::unordered_map<string, ScrapFunction> operations = {
 	{"-=", &S_sub_assign},
 	{"*=", &S_mult_assign},
 	{"/=", &S_div_assign},
+	{"object", &S_object},
+	{"switch", &S_switch},
 };
 
 ScrapFunction get_scrap_function(const string& key) {

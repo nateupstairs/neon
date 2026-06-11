@@ -101,6 +101,24 @@ Condition must evaluate to a boolean. The false branch is optional.
 
 Bindings are evaluated sequentially (later bindings can reference earlier ones). The scope frame is popped after the body evaluates. Returns the body result.
 
+#### switch
+
+```json
+["switch", value, {"case1": result1, "case2": result2, "_": default}]
+```
+
+Evaluates `value`, converts it to a string key, and looks it up in the cases object. Returns the matching value, or the `_` key as a default fallback, or null if no match.
+
+```json
+["switch", ["get", "status"], {"active": "green", "inactive": "gray", "_": "unknown"}]
+```
+
+Can be combined with `object` to build cases dynamically:
+
+```json
+["switch", "x", ["object", [["x", 10], ["y", 20]]]]
+```
+
 #### for-each
 
 ```json
@@ -117,11 +135,12 @@ Iterates over an array, binding each element to the named variable. Returns the 
 
 Returns an array of integers from `start` to `end` (inclusive).
 
-### Arrays
+### Arrays / Objects
 
 | Function | Example | Result |
 |----------|---------|--------|
 | `array` / `list` | `["array", 1, 2, 3]` | `[1, 2, 3]` |
+| `object` | `["object", [["a", 1], ["b", 2]]]` | `{"a": 1, "b": 2}` |
 | `nth` | `["nth", arr, 1]` | element at index |
 | `first` .. `tenth` | `["first", arr]` | positional access |
 | `last` | `["last", arr]` | last element |

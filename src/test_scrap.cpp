@@ -488,6 +488,48 @@ main() {
 	};
 	for (const auto& t : integration_tests) run_test(t);
 
+	// ── Object ──────────────────────────────────────────────────
+	printf("\n── Object ──\n");
+	vector<Test> object_tests = {
+		{"object: from pairs",
+			R"(["object", [["a", 1], ["b", 2]]])",
+			json::parse(R"({"a":1,"b":2})"), nullptr},
+		{"object: empty",
+			R"(["object", []])",
+			json::parse(R"({})"), nullptr},
+		{"object: single pair",
+			R"(["object", [["key", "val"]]])",
+			json::parse(R"({"key":"val"})"), nullptr},
+		{"object: with expressions",
+			R"(["object", [["sum", ["+", 1, 2]], ["neg", ["-", 0, 1]]]])",
+			json::parse(R"({"neg":-1.0,"sum":3.0})"), nullptr},
+	};
+	for (const auto& t : object_tests) run_test(t);
+
+	// ── Switch ──────────────────────────────────────────────────
+	printf("\n── Switch ──\n");
+	vector<Test> switch_tests = {
+		{"switch: string match",
+			R"(["switch", "b", {"a": 1, "b": 2, "c": 3}])",
+			2, nullptr},
+		{"switch: default fallback",
+			R"(["switch", "z", {"a": 1, "_": 99}])",
+			99, nullptr},
+		{"switch: no match no default",
+			R"(["switch", "z", {"a": 1, "b": 2}])",
+			nullptr, nullptr},
+		{"switch: null cases",
+			R"(["switch", "a", null])",
+			nullptr, nullptr},
+		{"switch: with object builder",
+			R"(["switch", "x", ["object", [["x", 10], ["y", 20], ["_", 0]]]])",
+			10, nullptr},
+		{"switch: from scope var",
+			R"(["switch", ["get", "status"], {"active": "green", "inactive": "gray", "_": "unknown"}])",
+			"green", json::parse(R"({"status": "active"})")},
+	};
+	for (const auto& t : switch_tests) run_test(t);
+
 	// ── Trace ───────────────────────────────────────────────────
 	printf("\n── Trace ──\n");
 
@@ -630,6 +672,33 @@ main() {
 			]
 		])"),
 		json::parse("{}"));
+
+	// ── Trace: object ───────────────────────────────────────────
+	printf("\n── Trace: object ──\n");
+
+	run_trace_test("trace: object basic",
+		R"(["object", [["a", 1], ["b", 2]]])",
+		json::parse(R"([{"a":1,"b":2}, "a", 1, "b", 2])"));
+
+	run_trace_test("trace: object with expression",
+		R"(["object", [["x", ["+", 1, 2]]]])",
+		json::parse(R"([{"x":3.0}, "x", [3.0, 1, 2]])"));
+
+	// ── Trace: switch ───────────────────────────────────────────
+	printf("\n── Trace: switch ──\n");
+
+	run_trace_test("trace: switch string match",
+		R"(["switch", "b", {"a": 1, "b": 2}])",
+		json::parse(R"([2, "b", {"a":1,"b":2}])"));
+
+	run_trace_test("trace: switch with var",
+		R"(["switch", ["get", "s"], {"x": 10, "_": 0}])",
+		json::parse(R"([10, ["x", "s"], {"_":0,"x":10}])"),
+		json::parse(R"({"s": "x"})"));
+
+	run_trace_test("trace: switch + object",
+		R"(["switch", "a", ["object", [["a", 99], ["_", 0]]]])",
+		json::parse(R"([99, "a", [{"_":0,"a":99}, "a", 99, "_", 0]])"));
 
 	// ── Summary ─────────────────────────────────────────────────
 	printf("\n────────────────────────────\n");
